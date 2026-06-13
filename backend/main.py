@@ -118,3 +118,116 @@ def chat(data: ChatInput):
         ]
     )
     return {"reply": response.choices[0].message.content}
+@app.get("/train-search")
+def train_search(train_no: str):
+    mock_trains = {
+        "12622": {
+            "train_no": "12622",
+            "name": "Tamil Nadu Express",
+            "from": "MAS - Chennai Central",
+            "to": "NDLS - New Delhi",
+            "departure": "22:00",
+            "arrival": "07:55",
+            "duration": "33h 55m",
+            "classes": ["Sleeper", "3A", "2A", "1A"],
+            "status": "Running on time"
+        },
+        "12163": {
+            "train_no": "12163",
+            "name": "Chennai Dadar Express",
+            "from": "MAS - Chennai Central",
+            "to": "DR - Dadar",
+            "departure": "07:15",
+            "arrival": "11:45",
+            "duration": "28h 30m",
+            "classes": ["Sleeper", "3A", "2A"],
+            "status": "Running on time"
+        },
+        "12621": {
+            "train_no": "12621",
+            "name": "Tamil Nadu Express",
+            "from": "NDLS - New Delhi",
+            "to": "MAS - Chennai Central",
+            "departure": "22:30",
+            "arrival": "08:25",
+            "duration": "33h 55m",
+            "classes": ["Sleeper", "3A", "2A", "1A"],
+            "status": "Delayed by 15 mins"
+        },
+        "22625": {
+            "train_no": "22625",
+            "name": "Double Decker Express",
+            "from": "MAS - Chennai Central",
+            "to": "SBC - KSR Bengaluru",
+            "departure": "06:05",
+            "arrival": "12:05",
+            "duration": "6h 00m",
+            "classes": ["CC", "2S"],
+            "status": "Running on time"
+        },
+        "12671": {
+            "train_no": "12671",
+            "name": "Nilagiri Express",
+            "from": "MAS - Chennai Central",
+            "to": "CBE - Coimbatore",
+            "departure": "21:15",
+            "arrival": "06:30",
+            "duration": "9h 15m",
+            "classes": ["Sleeper", "3A", "2A"],
+            "status": "Running on time"
+        },
+    }
+    
+    result = mock_trains.get(train_no.strip())
+    if result:
+        return {"found": True, "train": result}
+    else:
+        return {"found": False, "message": f"Train {train_no} not found in database"}
+@app.get("/pnr-status")
+def pnr_status(pnr: str):
+    mock_pnr = {
+        "1234567890": {
+            "pnr": "1234567890",
+            "train_no": "12622",
+            "train_name": "Tamil Nadu Express",
+            "from": "MAS - Chennai Central",
+            "to": "NDLS - New Delhi",
+            "date": "15-Jun-2026",
+            "class": "Sleeper",
+            "passengers": [
+                {"name": "Passenger 1", "seat": "S4/32", "status": "Confirmed"},
+                {"name": "Passenger 2", "seat": "S4/33", "status": "Confirmed"},
+            ]
+        },
+        "9876543210": {
+            "pnr": "9876543210",
+            "train_no": "12671",
+            "train_name": "Nilagiri Express",
+            "from": "MAS - Chennai Central",
+            "to": "CBE - Coimbatore",
+            "date": "16-Jun-2026",
+            "class": "3A",
+            "passengers": [
+                {"name": "Passenger 1", "seat": "WL/14", "status": "Waitlist"},
+            ]
+        },
+        "1122334455": {
+            "pnr": "1122334455",
+            "train_no": "22625",
+            "train_name": "Double Decker Express",
+            "from": "MAS - Chennai Central",
+            "to": "SBC - KSR Bengaluru",
+            "date": "14-Jun-2026",
+            "class": "CC",
+            "passengers": [
+                {"name": "Passenger 1", "seat": "D1/15", "status": "Confirmed"},
+                {"name": "Passenger 2", "seat": "D1/16", "status": "Confirmed"},
+                {"name": "Passenger 3", "seat": "D1/17", "status": "Confirmed"},
+            ]
+        },
+    }
+    result = mock_pnr.get(pnr.strip())
+    if result:
+        return {"found": True, "pnr_data": result}
+    else:
+        return {"found": False, "message": f"PNR {pnr} not found in database"}

@@ -1,6 +1,19 @@
 import { useState, useEffect, useRef } from "react";
 import "./App.css";
 
+function Toast({ toasts }) {
+  return (
+    <div className="toast-wrap">
+      {toasts.map((t) => (
+        <div key={t.id} className={`toast ${t.type}`}>
+          <span>{t.type === "error" ? "❌" : t.type === "success" ? "✅" : "⚠️"}</span>
+          <span>{t.message}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TrainScene() {
   useEffect(() => {
     const row = document.getElementById("sleepers-row");
@@ -53,7 +66,7 @@ function TrainScene() {
   );
 }
 
-function WaitlistPredictor() {
+function WaitlistPredictor({ showToast }) {
   const [form, setForm] = useState({
     waitlist_position: "",
     class_of_travel: "Sleeper",
@@ -71,7 +84,7 @@ function WaitlistPredictor() {
   const predict = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/predict-waitlist", {
+      const res = await fetch("http://localhost:9999/predict-waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -87,7 +100,7 @@ function WaitlistPredictor() {
       const data = await res.json();
       setResult(data);
     } catch {
-      setResult({ error: "Backend connect aagala. FastAPI running ah check pannunga." });
+      showToast( "Backend didnot connect. Check FASTAPI running." ,"error");
     }
     setLoading(false);
   };
@@ -161,7 +174,7 @@ function WaitlistPredictor() {
   );
 }
 
-function CrowdDashboard() {
+function CrowdDashboard({ showToast }) {
   const stations = ["NDLS","CSTM","HWH","MAS","SBC","CBE"];
   const [selected, setSelected] = useState("MAS");
   const [hour, setHour] = useState(new Date().getHours());
@@ -175,7 +188,7 @@ function CrowdDashboard() {
       const data = await res.json();
       setResult(data);
     } catch {
-      setResult({ error: "Backend connect aagala." });
+      showToast("Backend did not connect.Check FastAPI running", "error");
     }
     setLoading(false);
   };
@@ -221,9 +234,211 @@ function CrowdDashboard() {
   );
 }
 
-function ChatBot() {
+function TrainSearch({ showToast }) {
+  const [trainNo, setTrainNo] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const search = async () => {
+    if (!trainNo.trim()) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`http://localhost:8000/train-search?train_no=${trainNo}`);
+      const data = await res.json();
+      setResult(data);
+    } catch {
+      showToast("Backend did not connect.Check FastAPI running", "error");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="card">
+      <div className="card-title">🚂 TRAIN SEARCH</div>
+      <div className="form-grid">
+        <div className="form-group">
+          <label>Train Number</label>
+          <input
+            type="text"
+            placeholder="e.g. 12622"
+            value={trainNo}
+            onChange={(e) => setTrainNo(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && search()}
+          />
+        </div>
+      </div>
+      <button className="btn-primary" onClick={search} disabled={loading}>
+        {loading ? "Searching..." : "Search Train"}
+      </button>
+
+      {result && (
+        <div className="result-box">
+          {!result.found ? (
+            <div className="result-confidence" style={{color:"#D0021B"}}>
+              ❌ {result.message}
+            </div>
+          ) : (
+            <div>
+              <div className="result-status result-confirmed">
+                🚆 {result.train.name}
+              </div>
+              <div style={{marginTop:"12px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px"}}>
+                <div className="crowd-card">
+                  <div className="crowd-station-name">🔢 Train No</div>
+                  <div style={{fontSize:"14px", color:"#1565C0", fontWeight:"600"}}>{result.train.train_no}</div>
+                </div>
+                <div className="crowd-card">
+                  <div className="crowd-station-name">⏱ Duration</div>
+                  <div style={{fontSize:"14px", color:"#1565C0", fontWeight:"600"}}>{result.train.duration}</div>
+                </div>
+                <div className="crowd-card">
+                  <div className="crowd-station-name">🟢 Departure</div>
+                  <div style={{fontSize:"14px", color:"#2E7D32", fontWeight:"600"}}>{result.train.from}</div>
+                  <div style={{fontSize:"13px", color:"#1565C0"}}>{result.train.departure}</div>
+                </div>
+                <div className="crowd-card">
+                  <div className="crowd-station-name">🔴 Arrival</div>
+                  <div style={{fontSize:"14px", color:"#D0021B", fontWeight:"600"}}>{result.train.to}</div>
+                  <div style={{fontSize:"13px", color:"#1565C0"}}>{result.train.arrival}</div>
+                </div>
+              </div>
+              <div className="crowd-card" style={{marginTop:"10px"}}>
+                <div className="crowd-station-name">🎫 Classes Available</div>
+                <div style={{display:"flex", gap:"8px", flexWrap:"wrap", marginTop:"6px"}}>
+                  {result.train.classes.map((c) => (
+                    <span key={c} style={{
+                      background:"#E3F2FD", color:"#1565C0",
+                      padding:"4px 10px", borderRadius:"4px",
+                      fontSize:"12px", fontWeight:"600"
+                    }}>{c}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="crowd-card" style={{marginTop:"10px"}}>
+                <div className="crowd-station-name">📡 Live Status</div>
+                <div style={{
+                  fontSize:"13px", fontWeight:"600",
+                  color: result.train.status.includes("Delayed") ? "#E65100" : "#2E7D32"
+                }}>{result.train.status}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PNRStatus({ showToast }) {
+  const [pnr, setPnr] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const check = async () => {
+    if (!pnr.trim()) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`http://localhost:8000/pnr-status?pnr=${pnr}`);
+      const data = await res.json();
+      setResult(data);
+     } catch {
+      showToast("Backend did not connect.Check FastAPI running", "error");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="card">
+      <div className="card-title">🎟️ PNR STATUS</div>
+      <div className="form-grid">
+        <div className="form-group">
+          <label>PNR Number (10 digits)</label>
+          <input
+            type="text"
+            placeholder="e.g. 1234567890"
+            value={pnr}
+            onChange={(e) => setPnr(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && check()}
+            maxLength={10}
+          />
+        </div>
+      </div>
+      <button className="btn-primary" onClick={check} disabled={loading}>
+        {loading ? "Checking..." : "Check PNR Status"}
+      </button>
+
+      {result && (
+        <div className="result-box">
+          {!result.found ? (
+            <div className="result-confidence" style={{color:"#D0021B"}}>
+              ❌ {result.message}
+            </div>
+          ) : (
+            <div>
+              <div className="result-status result-confirmed">
+                🎟️ {result.pnr_data.train_name}
+              </div>
+              <div style={{marginTop:"12px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px"}}>
+                <div className="crowd-card">
+                  <div className="crowd-station-name">🚆 Train No</div>
+                  <div style={{fontSize:"14px", color:"#1565C0", fontWeight:"600"}}>{result.pnr_data.train_no}</div>
+                </div>
+                <div className="crowd-card">
+                  <div className="crowd-station-name">📅 Date</div>
+                  <div style={{fontSize:"14px", color:"#1565C0", fontWeight:"600"}}>{result.pnr_data.date}</div>
+                </div>
+                <div className="crowd-card">
+                  <div className="crowd-station-name">🟢 From</div>
+                  <div style={{fontSize:"13px", color:"#2E7D32", fontWeight:"600"}}>{result.pnr_data.from}</div>
+                </div>
+                <div className="crowd-card">
+                  <div className="crowd-station-name">🔴 To</div>
+                  <div style={{fontSize:"13px", color:"#D0021B", fontWeight:"600"}}>{result.pnr_data.to}</div>
+                </div>
+              </div>
+
+              <div className="crowd-card" style={{marginTop:"10px"}}>
+                <div className="crowd-station-name">🎫 Class — {result.pnr_data.class}</div>
+              </div>
+
+              <div className="crowd-card" style={{marginTop:"10px"}}>
+                <div className="crowd-station-name">👥 Passengers</div>
+                <div style={{marginTop:"8px", display:"flex", flexDirection:"column", gap:"8px"}}>
+                  {result.pnr_data.passengers.map((p, i) => (
+                    <div key={i} style={{
+                      display:"flex", justifyContent:"space-between",
+                      alignItems:"center", padding:"8px 12px",
+                      background: p.status === "Confirmed" ? "#E8F5E9" : "#FFF3E0",
+                      borderRadius:"6px",
+                      border: `1px solid ${p.status === "Confirmed" ? "#A5D6A7" : "#FFCC80"}`
+                    }}>
+                      <div>
+                        <div style={{fontSize:"13px", fontWeight:"600", color:"#1a2a4a"}}>{p.name}</div>
+                        <div style={{fontSize:"12px", color:"#5C7A9E"}}>Seat: {p.seat}</div>
+                      </div>
+                      <div style={{
+                        fontSize:"12px", fontWeight:"700",
+                        color: p.status === "Confirmed" ? "#2E7D32" : "#E65100",
+                        padding:"4px 10px", borderRadius:"4px",
+                        background: p.status === "Confirmed" ? "#C8E6C9" : "#FFE0B2"
+                      }}>
+                        {p.status === "Confirmed" ? "✅" : "⏳"} {p.status}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChatBot({ showToast }) {
   const [msgs, setMsgs] = useState([
-    { role: "bot", text: "Vanakkam! I am RailSense AI. Ask me anything about Indian Railways — waitlist, crowd, trains!" }
+    { role: "bot", text: "HELLO! I am RailSense AI. Ask me anything about Indian Railways — waitlist, crowd, trains!" }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -248,7 +463,7 @@ function ChatBot() {
       const data = await res.json();
       setMsgs((p) => [...p, { role: "bot", text: data.reply }]);
     } catch {
-      setMsgs((p) => [...p, { role: "bot", text: "Backend connect aagala. FastAPI running ah check pannunga." }]);
+      showToast("Backend did not connect check FastAPI running.", "error");
     }
     setLoading(false);
   };
@@ -278,8 +493,17 @@ function ChatBot() {
 
 export default function App() {
   const [tab, setTab] = useState("waitlist");
+  const [toasts, setToasts] = useState([]);
+
+  const showToast = (message, type = "error") => {
+    const id = Date.now();
+    setToasts((p) => [...p, { id, message, type }]);
+    setTimeout(() => setToasts((p) => p.filter((t) => t.id !== id)), 3000);
+  };
+
   return (
     <div className="app">
+      <Toast toasts={toasts} />
       <header className="header">
         <div className="header-inner">
           <div className="logo">
@@ -294,19 +518,21 @@ export default function App() {
       </header>
       <TrainScene />
       <nav className="tabs">
-        {[["waitlist","🎫 Waitlist"],["crowd","📊 Crowd"],["chat","🤖 AI Chat"]].map(([id,label]) => (
+       {[["waitlist","🎫 Waitlist"],["crowd","📊 Crowd"],["search","🚂 Train Search"],["pnr","🎟️ PNR Status"],["chat","🤖 AI Chat"]].map(([id,label]) => (
           <button key={id} className={`tab-btn ${tab===id?"active":""}`} onClick={() => setTab(id)}>
             {label}
           </button>
         ))}
       </nav>
       <main className="main">
-        {tab === "waitlist" && <WaitlistPredictor />}
-        {tab === "crowd"    && <CrowdDashboard />}
-        {tab === "chat"     && <ChatBot />}
+        {tab === "waitlist" && <WaitlistPredictor showToast={showToast} />}
+        {tab === "crowd"    && <CrowdDashboard showToast={showToast} />}
+        {tab === "search"   && <TrainSearch showToast={showToast} />}
+        {tab === "pnr"      && <PNRStatus showToast={showToast} />}
+        {tab === "chat"     && <ChatBot showToast={showToast} />}
       </main>
       <footer className="footer">
-        Built for FAR AWAY 2026 Hackathon · Team RailSense
+       RailSense
       </footer>
     </div>
   );
