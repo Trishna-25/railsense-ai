@@ -84,7 +84,7 @@ function WaitlistPredictor({ showToast }) {
   const predict = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:9999/predict-waitlist", {
+      const res = await fetch("http://localhost:8000/predict-waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
